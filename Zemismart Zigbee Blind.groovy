@@ -60,7 +60,7 @@ import groovy.transform.Field
 import hubitat.zigbee.zcl.DataType
 
 private String textVersion() {
-    return '3.6.0 - 2025-09-14 6:28 PM'
+    return '3.6.0 - 2025-09-14 8:43 PM'
 }
 
 private String textCopyright() {
