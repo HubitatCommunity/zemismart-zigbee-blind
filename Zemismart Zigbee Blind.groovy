@@ -47,7 +47,7 @@
  *                                  added _TZE204_57hjqelq _TZE200_axgvo9jh _TZE200_zxxfv8wi _TZE204_lh3arisb _TZE200_eegnwoyw _TZE600_ogyg1y6b _TZE200_cpbo62rn _TZE200_libht6ua  _TZE200_zvo63cmo _TZE200_g5xqosu7 _TZE204_g5xqosu7 _TZE204_r0jdjrvi _TZE200_p2qzzazi _TZE200_clm4gdw4 _TZE200_2vfxweng _TZE204_2rvvqjoa _TZE200_zyrdrmno _TZE200_p6vz3wzt _TZE200_jhkttplm _TZE200_5nldle7w
  *                                  hopefully fixed _TZE200_pw7mji0l setlevel position; added _TZE200_eevqq1uv ; added _TZE200_icka1clh AM43; added TS011F manufacturers _TZ3000_8h7wgocw _TZ3000_e3vhyirx _TZ3000_yruungrl _TZ3000_jwv3cwak _TZ3000_74hsp7qy _TZ3210_dwytrmda
  * 3.5.1 (2025-03-11) [kkossev]   - TS0601 _TZE284_myikb7qz Tuya DPs updates - Tnx @dan18 (does it use ZM85 calibration commands?) ; added Ping() command; added Refresh() command; finally replaced Presence w/ healthCheck !
- * 3.6.0 (2025-09-14) [kkossev]   - moved to https://github.com/HubitatCommunity/zemismart-zigbee-blind repository.
+ * 3.6.0 (2025-09-14) [kkossev]   - moved to https://github.com/HubitatCommunity/zemismart-zigbee-blind repository. Corrected importUrl
  *
  *                                TODO: https://github.com/Koenkk/zigbee2mqtt/issues/17436#issuecomment-1537534974  - ZM25TQ calibration commands 
  *                                TODO: evaluate whether adding retries for setPos is possible : https://community.hubitat.com/t/release-zemismart-zigbee-blind-driver/67525/371?u=kkossev
@@ -60,7 +60,7 @@ import groovy.transform.Field
 import hubitat.zigbee.zcl.DataType
 
 private String textVersion() {
-    return '3.6.0 - 2025-09-14 8:43 PM'
+    return '3.6.0 - 2025-09-14 9:23 PM'
 }
 
 private String textCopyright() {
@@ -70,7 +70,7 @@ private String textCopyright() {
 @Field static final Boolean _DEBUG = false
 
 metadata {
-    definition(name: 'ZemiSmart Zigbee Blind', namespace: 'amosyuen', author: 'Amos Yuen', importUrl: 'https://raw.githubusercontent.com//HubitatCommunity/zemismart-zigbee-blind/development/Zemismart%20Zigbee%20Blind.groovy', singleThreaded: true ) {
+    definition(name: 'ZemiSmart Zigbee Blind', namespace: 'amosyuen', author: 'Amos Yuen', importUrl: 'https://raw.githubusercontent.com/HubitatCommunity/zemismart-zigbee-blind/refs/heads/main/Zemismart%20Zigbee%20Blind.groovy', singleThreaded: true ) {
         capability 'Actuator'
         capability 'Configuration'
         //capability 'PresenceSensor'
