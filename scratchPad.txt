@@ -1,0 +1,183 @@
+
+Device Data
+Application	4D
+In Clusters	0004,0005,EF00,0000,ED00
+Manufacturer	_TZE284_myikb7qz
+Model	TS0601
+Out Clusters	0019,000A
+Software Build	null
+
+Here are the data points I was able to retrieve from your instructions:
+
+"1":"Control"
+"2":"Curtain position setting"
+"3":"Current curtain position"
+"5":"Motor Direction"
+"10":"Total Time"
+"11":"Situation_set"
+"12":"Fault"
+"13":"Battery Percentage"
+"16":"Border"
+"19":"Best Position"
+"101":"Child Lock"
+"102":"set mode"
+"103":"Motor operating mode"
+
+I was also able to locate the instruction sets and status sets in the device debugging menu on the Tuya developer platform:
+
+Stantard Status Set:
+control Enum
+
+{
+"range": [
+"open",
+"stop",
+"close",
+"continue"
+]
+}
+
+percent_control Integer
+
+{
+"unit": "%",
+"min": 0,
+"max": 100,
+"scale": 0,
+"step": 1
+}
+
+percent_state Integer
+
+{
+"unit": "%",
+"min": 0,
+"max": 100,
+"scale": 0,
+"step": 1
+}
+
+control_back_mode Enum
+
+{
+"range": [
+"forward",
+"back"
+]
+}
+
+time_total Integer
+
+{
+"unit": "ms",
+"min": 0,
+"max": 120000,
+"scale": 0,
+"step": 1
+}
+
+situation_set Enum
+
+{
+"range": [
+"fully_open",
+"fully_close"
+]
+}
+
+fault Bitmap
+
+{
+"label": [
+"motor_fault"
+]
+}
+
+battery_percentage Integer
+
+{
+"unit": "%",
+"min": 0,
+"max": 100,
+"scale": 0,
+"step": 1
+}
+
+border Enum
+
+{
+"range": [
+"up",
+"down",
+"up_delete",
+"down_delete",
+"remove_top_bottom"
+]
+}
+
+position_best Integer
+
+{
+"unit": "%",
+"min": 0,
+"max": 100,
+"scale": 0,
+"step": 1
+}
+
+Standard Instruction Set:
+
+Code Type Values
+control Enum
+
+{
+"range": [
+"open",
+"stop",
+"close",
+"continue"
+]
+}
+
+percent_control Integer
+
+{
+"unit": "%",
+"min": 0,
+"max": 100,
+"scale": 0,
+"step": 1
+}
+
+control_back_mode Enum
+
+{
+"range": [
+"forward",
+"back"
+]
+}
+
+border Enum
+
+{
+"range": [
+"up",
+"down",
+"up_delete",
+"down_delete",
+"remove_top_bottom"
+]
+}
+
+position_best Integer
+
+{
+"unit": "%",
+"min": 0,
+"max": 100,
+"scale": 0,
+"step": 1
+}
+
+
