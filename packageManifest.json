@@ -12,8 +12,9 @@
 			"id": "f49cbab2-7fe9-450f-a286-05d36b5c43fd",
 			"name": "Zemismart Zigbee Blind",
 			"namespace": "amosyuen",
-			"location": "https://raw.githubusercontent.com/amosyuen/hubitat-zemismart-zigbee/main/Zemismart%20Zigbee%20Blind.groovy",
+			"location": "https://raw.githubusercontent.com/HubitatCommunity/zemismart-zigbee-blind/refs/heads/main/Zemismart%20Zigbee%20Blind.groovy",
 			"required": true
 		}
 	]
 }
+
