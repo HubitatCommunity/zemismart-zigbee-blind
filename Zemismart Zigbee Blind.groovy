@@ -47,24 +47,23 @@
  *                                  added _TZE204_57hjqelq _TZE200_axgvo9jh _TZE200_zxxfv8wi _TZE204_lh3arisb _TZE200_eegnwoyw _TZE600_ogyg1y6b _TZE200_cpbo62rn _TZE200_libht6ua  _TZE200_zvo63cmo _TZE200_g5xqosu7 _TZE204_g5xqosu7 _TZE204_r0jdjrvi _TZE200_p2qzzazi _TZE200_clm4gdw4 _TZE200_2vfxweng _TZE204_2rvvqjoa _TZE200_zyrdrmno _TZE200_p6vz3wzt _TZE200_jhkttplm _TZE200_5nldle7w
  *                                  hopefully fixed _TZE200_pw7mji0l setlevel position; added _TZE200_eevqq1uv ; added _TZE200_icka1clh AM43; added TS011F manufacturers _TZ3000_8h7wgocw _TZ3000_e3vhyirx _TZ3000_yruungrl _TZ3000_jwv3cwak _TZ3000_74hsp7qy _TZ3210_dwytrmda
  * 3.5.1 (2025-03-11) [kkossev]   - TS0601 _TZE284_myikb7qz Tuya DPs updates - Tnx @dan18 (does it use ZM85 calibration commands?) ; added Ping() command; added Refresh() command; finally replaced Presence w/ healthCheck !
- * 3.6.0 (2025-09-14) [kkossev]   - moved to https://github.com/HubitatCommunity/zemismart-zigbee-blind repository. Corrected importUrl
+ * 3.6.0 (2025-09-14) [kkossev]   - moved to https://github.com/HubitatCommunity/zemismart-zigbee-blind repository.
+ * 3.6.1 (2026-04-01) [kkossev]   - fixed importURL;
  *
  *                                TODO: https://github.com/Koenkk/zigbee2mqtt/issues/17436#issuecomment-1537534974  - ZM25TQ calibration commands 
  *                                TODO: evaluate whether adding retries for setPos is possible : https://community.hubitat.com/t/release-zemismart-zigbee-blind-driver/67525/371?u=kkossev
  */
 
-//import groovy.json.JsonOutput
 //import hubitat.helper.HexUtils
 import groovy.transform.Field
-
 import hubitat.zigbee.zcl.DataType
 
 private String textVersion() {
-    return '3.6.0 - 2025-09-14 9:23 PM'
+    return '3.6.1 - 2026-04-01 9:33 PM'
 }
 
 private String textCopyright() {
-    return 'Copyright ©2021-2025\nAmos Yuen, kkossev, iquix, ShinJjang'
+    return 'Copyright ©2021-2026\nAmos Yuen, kkossev, iquix, ShinJjang'
 }
 
 @Field static final Boolean _DEBUG = false
@@ -73,7 +72,6 @@ metadata {
     definition(name: 'ZemiSmart Zigbee Blind', namespace: 'amosyuen', author: 'Amos Yuen', importUrl: 'https://raw.githubusercontent.com/HubitatCommunity/zemismart-zigbee-blind/refs/heads/main/Zemismart%20Zigbee%20Blind.groovy', singleThreaded: true ) {
         capability 'Actuator'
         capability 'Configuration'
-        //capability 'PresenceSensor'
         capability 'HealthCheck'        // finally, replaced the misused Presence capability starting from version 3.5.1
         capability 'PushableButton'
         capability 'WindowShade'
@@ -926,17 +924,6 @@ private void updatePosition(final int position) {
         stopPositionReportTimeout()    // added 12/30/2022
     }
 }
-/* finally deprecated!
-private void updatePresence(final boolean present) {
-    //logDebug "updatePresence: present=${present}"
-    if (present) {
-        state.lastHeardMillis = now()
-        checkHeartbeat()
-    }
-    state.waitingForResponseSinceMillis = null
-    sendEvent(name: 'presence', value: present ? 'present' : 'not present')
-}
-*/
 
 private void updateSpeed(final int speed) {
     logDebug("updateSpeed: speed=${speed}")
@@ -1228,11 +1215,6 @@ void endOfMovement() {
 //
 
 private void sendTuyaCommand(int dp, int dpType, int fnCmd, int fnCmdLength) {
-    /* depricated !
-    state.waitingForResponseSinceMillis = now()
-    checkForResponse()
-    */
-
     String dpHex = zigbee.convertToHexString(dp, 2)
     String dpTypeHex = zigbee.convertToHexString(dpType, 2)
     String fnCmdHex = zigbee.convertToHexString(fnCmd, fnCmdLength)
@@ -1248,36 +1230,6 @@ private void sendTuyaCommand(int dp, int dpType, int fnCmd, int fnCmdLength) {
 private String randomPacketId() {
     return zigbee.convertToHexString(new Random().nextInt(65536), 4)
 }
-
-/* depricated !
-void checkForResponse() {
-    //logDebug "checkForResponse: waitingForResponseSinceMillis=${state.waitingForResponseSinceMillis}"
-    if (state.waitingForResponseSinceMillis == null) {
-        return null
-    }
-    int waitMillis = (CHECK_FOR_RESPONSE_INTERVAL_SECONDS * 1000
-            - (now() - state.waitingForResponseSinceMillis))
-    //logDebug "checkForResponse: waitMillis=${waitMillis}"
-    if (waitMillis <= 0) {
-        updatePresence(false)
-    } else {
-        runInMillis(waitMillis, checkForResponse, [overwrite: true])
-    }
-}
-*/
-
-/* depricated !
-void checkHeartbeat() {
-    int waitMillis = (HEARTBEAT_INTERVAL_SECONDS * 1000
-            - (now() - state.lastHeardMillis))
-    //logDebug "checkHeartbeat: waitMillis=${waitMillis}"
-    if (waitMillis <= 0) {
-        updatePresence(false)
-    } else {
-        runInMillis(waitMillis, checkHeartbeat, [overwrite: true])
-    }
-}
-*/
 
 private void logInfo(final String text) {
     if (!enableInfoLog) {
@@ -1597,4 +1549,3 @@ void test(final String par) {
     String description = "catchall: 0104 EF00 01 01 0040 00 E174 01 00 0000 02 01 00356704000100"
     parse(par)
 }
-
