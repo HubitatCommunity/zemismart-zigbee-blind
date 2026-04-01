@@ -48,7 +48,7 @@
  *                                  hopefully fixed _TZE200_pw7mji0l setlevel position; added _TZE200_eevqq1uv ; added _TZE200_icka1clh AM43; added TS011F manufacturers _TZ3000_8h7wgocw _TZ3000_e3vhyirx _TZ3000_yruungrl _TZ3000_jwv3cwak _TZ3000_74hsp7qy _TZ3210_dwytrmda
  * 3.5.1 (2025-03-11) [kkossev]   - TS0601 _TZE284_myikb7qz Tuya DPs updates - Tnx @dan18 (does it use ZM85 calibration commands?) ; added Ping() command; added Refresh() command; finally replaced Presence w/ healthCheck !
  * 3.6.0 (2025-09-14) [kkossev]   - moved to https://github.com/HubitatCommunity/zemismart-zigbee-blind repository.
- * 3.6.1 (2026-04-01) [kkossev]   - fixed importURL;
+ * 3.6.1 (2026-04-01) [kkossev]   - fixed importURL; added TS0601 _TZE284_3mzb0sdz ZM16B Tubular motor @pomonabill22
  *
  *                                TODO: https://github.com/Koenkk/zigbee2mqtt/issues/17436#issuecomment-1537534974  - ZM25TQ calibration commands 
  *                                TODO: evaluate whether adding retries for setPos is possible : https://community.hubitat.com/t/release-zemismart-zigbee-blind-driver/67525/371?u=kkossev
@@ -59,7 +59,7 @@ import groovy.transform.Field
 import hubitat.zigbee.zcl.DataType
 
 private String textVersion() {
-    return '3.6.1 - 2026-04-01 9:33 PM'
+    return '3.6.1 - 2026-04-01 10:30 PM'
 }
 
 private String textCopyright() {
@@ -190,6 +190,8 @@ metadata {
         fingerprint profileId:'0104', endpointId:'01', inClusters:'0004,0005,0006,0102,0000', outClusters:'0019,000A', model:'TS130F', manufacturer:'_TZ3000_74hsp7qy' ,deviceJoinName: 'Zemismart Smart curtain/shutter switch'    // not tested
         //
         fingerprint profileId:'0104', endpointId:'01', inClusters:'0004,0005,EF00,0000,ED00', outClusters:'0019,000A', model:'TS0601', manufacturer:'_TZE284_myikb7qz' ,deviceJoinName: 'Blindsmart plantation shutter motor'   // https://community.hubitat.com/t/release-zemismart-zigbee-blind-driver/67525/499?u=kkossev
+        fingerprint profileId:'0104', endpointId:'01', inClusters:'0000,0004,0005,EF00', outClusters:'0019,000A', model:'TS0601', manufacturer:'_TZE284_3mzb0sdz' ,deviceJoinName: 'Zemismart Tubular motor ZM16B'              // Z2M model ZM16B  https://community.hubitat.com/t/release-zemismart-zigbee-blind-driver/67525/543?u=kkossev
+        fingerprint profileId:'0104', endpointId:'01', inClusters:'0004,0005,EF00,0000,ED00', outClusters:'0019,000A', model:'TS0601', manufacturer:'_TZE284_3mzb0sdz' ,deviceJoinName: 'Zemismart Tubular motor ZM16B'         // some units advertise ED00
         fingerprint profileId:'0104', endpointId:'01', inClusters:'0000,0004,0005,EF00', outClusters:'0019,000A', model:'TS030F', manufacturer:'_TZB000_42ha4rsc' ,deviceJoinName: 'Lidl HG09648 Livarno roller blinds'         // not tested
         // defaults are :  open: 0, stop: 1,  close: 2
     }
@@ -266,6 +268,7 @@ boolean isCurtainMotor() {
 }
 
 boolean isPlantationShutter() { return device.getDataValue('manufacturer') in ['_TZE284_myikb7qz'] }
+boolean isZM16B() { return device.getDataValue('manufacturer') in ['_TZE284_3mzb0sdz'] }
 
 boolean isMoesCoverSwitch() { return device.getDataValue('manufacturer') in ['_TZE200_nhyj64w2'] }
 
@@ -365,6 +368,8 @@ void checkDriverVersion() {
         logDebug "checkDriverVersion: updating the settings from the current driver version ${state.driverVersion} to the new version ${textVersion()}"
         logInfo "Updated to version ${textVersion()}"
         state.driverVersion = textVersion()
+        if (state.version != null) { state.remove('version') }
+        state.remove('waitingForResponseSinceMillis')
         configure(fullInit = false) 
         checkHealthStatusConfiguration()
     }
@@ -372,10 +377,8 @@ void checkDriverVersion() {
 
 
 void configure(boolean fullInit = true) {
-    state.version = textVersion()
     state.copyright = textCopyright()
 
-    //if (state.lastHeardMillis == null) { state.lastHeardMillis = 0 }  // not used anymore
     if (state.target == null || state.target < 0 || state.target > 100) { state.target = 0 }
     state.isTargetRcvd = false
 
@@ -432,7 +435,8 @@ void setDirection() {
     try {
         int directionValue = (settings?.direction ?: DEFAULT_DIRECTION) as int
         logDebug("setDirection: directionText=${DIRECTION_MAP[directionValue]}, directionValue=${directionValue}")
-        sendTuyaCommand(DP_ID_DIRECTION, DP_TYPE_ENUM, directionValue, 2)
+        int dpDirection = isZM16B() ? DP_ID_ZM16B_DIRECTION : DP_ID_DIRECTION
+        sendTuyaCommand(dpDirection, DP_TYPE_ENUM, directionValue, 2)
         return
     }
     catch (Exception e) {
@@ -471,6 +475,9 @@ void setMode() {
 @Field final int DP_ID_CURRENT_POSITION = 0x03
 @Field final int DP_ID_DIRECTION = 0x05
 @Field final int DP_ID_COMMAND_REMOTE = 0x07
+@Field final int DP_ID_ZM16B_CURRENT_POSITION = 0x08
+@Field final int DP_ID_ZM16B_TARGET_POSITION = 0x09
+@Field final int DP_ID_ZM16B_DIRECTION = 0x0B
 @Field final int DP_ID_MODE = 0x65
 @Field final int DP_ID_SPEED = 0x69
 @Field final int DP_ID_BATTERY = 0x0D
@@ -750,11 +757,43 @@ void parseSetDataResponse(final Map descMap) {
             }
             break
         case 0x08:      // also, for unknown curtain motors : Countdown  {“range”:[“cancel”,“1h”,“2h”,“3h”,“4h”],“type”:“enum”}
-            logDebug("parse (08): Moes motor reversal DP ${dp} value = ${dataValue}")    // isMoesCoverSwitch()
+            if (isZM16B()) {
+                if (dataValue >= 0 && dataValue <= 100) {
+                    if (invertPosition == true) {
+                        dataValue = 100 - dataValue
+                    }
+                    logDebug("parse (08): ZM16B current position=${dataValue}")
+                    restartPositionReportTimeout()
+                    updateWindowShadeArrived(dataValue)
+                    updatePosition(dataValue)
+                }
+                else {
+                    logWarn "parse (08): Unexpected ZM16B current position value=${dataValue}"
+                }
+            }
+            else {
+                logDebug("parse (08): Moes motor reversal DP ${dp} value = ${dataValue}")    // isMoesCoverSwitch()
+            }
             break
 
         case 0x09:      // for unknown curtain motors : Left time (Display the remaining time of the countdown) {“unit”:“s”,“min”:0,“max”:86400,“scale”:0,“step”:1,“type” :“value”}
-            logDebug("parse (09): Moes motor reversal DP ${dp} value = ${dataValue}")
+            if (isZM16B()) {
+                if (dataValue >= 0 && dataValue <= 100) {
+                    if (invertPosition == true) {
+                        dataValue = 100 - dataValue
+                    }
+                    logDebug("parse (09): ZM16B target position=${dataValue}")
+                    restartPositionReportTimeout()
+                    state.isTargetRcvd = true
+                    sendEvent(name: 'targetPosition', value: dataValue, type: 'physical')
+                }
+                else {
+                    logWarn "parse (09): Unexpected ZM16B target position value=${dataValue}"
+                }
+            }
+            else {
+                logDebug("parse (09): Moes motor reversal DP ${dp} value = ${dataValue}")
+            }
             break
 
         case 0x0A:      // (10) "Total Time" 0..120000 milliseconds (2 minutes) plantation shutter
@@ -762,7 +801,19 @@ void parseSetDataResponse(final Map descMap) {
             break
 
         case 0x0B :     // (11) situation_set - enum ["fully_open", "fully_close"]
-            logDebug("parse (11): isZM85EL=${isZM85EL()} isPlantationShutter=${isPlantationShutter()} ->  situation_set = ${ZM85EL_SITUATION_SET[dataValue as int]} (value = ${dataValue})")
+            if (isZM16B()) {
+                String directionText = DIRECTION_MAP[dataValue]
+                if (directionText != null) {
+                    logDebug("parse (11): ZM16B Motor Direction=${directionText}")
+                    updateDirection(dataValue)
+                }
+                else {
+                    logWarn "parse (11): Unexpected ZM16B motor direction value=${dataValue}"
+                }
+            }
+            else {
+                logDebug("parse (11): isZM85EL=${isZM85EL()} isPlantationShutter=${isPlantationShutter()} ->  situation_set = ${ZM85EL_SITUATION_SET[dataValue as int]} (value = ${dataValue})")
+            }
             break
 
         case 0x0C :     // (12) fault -     Bitmap
@@ -783,7 +834,12 @@ void parseSetDataResponse(final Map descMap) {
             break
 
         case 0x10 :     // (16) ZM85EL_BORDER
-            logDebug("parse (16): isZM85EL=${isZM85EL()} isPlantationShutter=${isPlantationShutter()} -> BORDER = ${ZM85EL_BORDER[dataValue as int]} (value = ${dataValue})")
+            if (isZM16B()) {
+                logDebug("parse (16): ZM16B BORDER = ${ZM85EL_BORDER[dataValue as int]} (value = ${dataValue})")
+            }
+            else {
+                logDebug("parse (16): isZM85EL=${isZM85EL()} isPlantationShutter=${isPlantationShutter()} -> BORDER = ${ZM85EL_BORDER[dataValue as int]} (value = ${dataValue})")
+            }
             break
 
         case 0x13 :     // (19) position_best - Integer    (0..100)
@@ -1128,7 +1184,8 @@ void setPosition(BigDecimal positionParam) {
     }
     restartPositionReportTimeout()
     state.isTargetRcvd = false
-    sendTuyaCommand(DP_ID_TARGET_POSITION, DP_TYPE_VALUE, position.intValue(), 8)
+    int dpTargetPosition = isZM16B() ? DP_ID_ZM16B_TARGET_POSITION : DP_ID_TARGET_POSITION
+    sendTuyaCommand(dpTargetPosition, DP_TYPE_VALUE, position.intValue(), 8)
 }
 
 void restartPositionReportTimeout() {
@@ -1302,11 +1359,11 @@ void setMoesBacklightOn()      { logInfo "setting Moes Backlight <b>On</b>"; sen
 void setMoesBacklightOff()     { logInfo "setting Moes Backlight <b>Off</b>"; sendTuyaCommand(0x07, DP_TYPE_BOOL, 0x00, 2) }
 void setMoesMotorReversalOn()  { logInfo "setting Moes Motor Reversal <b>On</b>"; sendTuyaCommand(0x08, DP_TYPE_ENUM, 0x01, 2) }
 void setMoesMotorReversalOff() { logInfo "setting Moes Motor Reversal <b>Off</b>"; sendTuyaCommand(0x08, DP_TYPE_ENUM, 0x00, 2) }
-void setZM85UpperLimit()       { logInfo "setting ZM85 Upper limit"; sendTuyaCommand(0x10, DP_TYPE_ENUM, 0x00, 2) }
-void setZM85LowerLimit()       { logInfo "setting ZM85 Lower limit"; sendTuyaCommand(0x10, DP_TYPE_ENUM, 0x01, 2) }
-void removeZM85UpperLimit()    { logInfo "removing ZM85 Upper limit"; sendTuyaCommand(0x10, DP_TYPE_ENUM, 0x02, 2) }
-void removeZM85LowerLimit()    { logInfo "removing ZM85 Lower limit"; sendTuyaCommand(0x10, DP_TYPE_ENUM, 0x03, 2) }
-void removeZM85TopBottom()     { logInfo "removing ZM85 both Top and Bottom limits"; sendTuyaCommand(0x10, DP_TYPE_ENUM, 0x04, 2) }
+void setZM85UpperLimit()       { logInfo "setting ZM85/ZM16B Upper limit"; sendTuyaCommand(0x10, DP_TYPE_ENUM, 0x00, 2) }
+void setZM85LowerLimit()       { logInfo "setting ZM85/ZM16B Lower limit"; sendTuyaCommand(0x10, DP_TYPE_ENUM, 0x01, 2) }
+void removeZM85UpperLimit()    { logInfo "removing ZM85/ZM16B Upper limit"; sendTuyaCommand(0x10, DP_TYPE_ENUM, 0x02, 2) }
+void removeZM85LowerLimit()    { logInfo "removing ZM85/ZM16B Lower limit"; sendTuyaCommand(0x10, DP_TYPE_ENUM, 0x03, 2) }
+void removeZM85TopBottom()     { logInfo "removing ZM85/ZM16B both Top and Bottom limits"; sendTuyaCommand(0x10, DP_TYPE_ENUM, 0x04, 2) }
 void setZM85ClickControlUp()   { logInfo "ZM85 Click Control <b>Up</b>";   sendTuyaCommand(0x14, DP_TYPE_ENUM, 0x00, 2) }
 void setZM85ClickControlDown() { logInfo "ZM85 Click Control <b>Down</b>"; sendTuyaCommand(0x14, DP_TYPE_ENUM, 0x01, 2) }
 void setZM85ModeMorning()      { logInfo "ZM85 Mode <b>Morning</b>";    sendTuyaCommand(0x04, DP_TYPE_ENUM, 0x00, 2) }
@@ -1324,13 +1381,14 @@ void setZM85ModeNight()        { logInfo "ZM85 Mode <b>Night</b>";  sendTuyaComm
     'Moes Motor Reversal On'  : [ type: 'none', function: 'setMoesMotorReversalOn'],
     'Moes Motor Reversal Off' : [ type: 'none', function: 'setMoesMotorReversalOff'],
 
-    'ZM85 Set Upper Limit' : [ type: 'none', function: 'setZM85UpperLimit'],
-    'ZM85 Set Lower Limit' : [ type: 'none', function: 'setZM85LowerLimit'],
-    'ZM85 Remove Upper Limit' : [ type: 'none', function: 'removeZM85UpperLimit'],
-    'ZM85 Remove Lower Limit' : [ type: 'none', function: 'removeZM85LowerLimit'],
-    'ZM85 Remove Both Limits' : [ type: 'none', function: 'removeZM85TopBottom'],
+    'ZM85/ZM16B Set Upper Limit' : [ type: 'none', function: 'setZM85UpperLimit'],
+    'ZM85/ZM16B Set Lower Limit' : [ type: 'none', function: 'setZM85LowerLimit'],
+    'ZM85/ZM16B Remove Upper Limit' : [ type: 'none', function: 'removeZM85UpperLimit'],
+    'ZM85/ZM16B Remove Lower Limit' : [ type: 'none', function: 'removeZM85LowerLimit'],
+    'ZM85/ZM16B Remove Both Limits' : [ type: 'none', function: 'removeZM85TopBottom'],
     'ZM85 Mode Morning' : [ type: 'none', function: 'setZM85ModeMorning'],
-    'ZM85 Mode Night' : [ type: 'none', function: 'setZM85ModeNight']
+    'ZM85 Mode Night' : [ type: 'none', function: 'setZM85ModeNight'],
+
 ]
 
 void calibrate(String par=null, String val=null ) {
